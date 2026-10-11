@@ -1,4 +1,4 @@
-package com.threevits.holesquare
+package io.github.threevits.holesquare
 
 import android.graphics.Canvas
 import android.graphics.Color

@@ -172,7 +172,7 @@ Lucide / Tabler / Phosphor 的图标大多是**描边型**：
 ## 结构
 
 ```
-src/com/threevits/holesquare/
+src/io/github/threevits/holesquare/
 ├── Shape.kt           形状枚举 + 取 Drawable（app 和 hook 共用同一份，预览不可能和实际不一致）
 ├── SvgPath.kt         d 属性 → Path（M/L/H/V/C/S/Q/T/A/Z、隐式重复、圆弧转贝塞尔）
 ├── SvgDrawable.kt     SVG 文档 → 可画的 Drawable（样式继承 / 内联 style / transform）

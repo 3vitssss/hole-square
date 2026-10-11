@@ -1,4 +1,4 @@
-package com.threevits.holesquare
+package io.github.threevits.holesquare
 
 import android.content.Context
 import android.net.Uri
@@ -179,7 +179,7 @@ data class HoleConfig(
  */
 object Config {
 
-    const val AUTHORITY = "com.threevits.holesquare.config"
+    const val AUTHORITY = "io.github.threevits.holesquare.config"
 
     /** app 自己用的 prefs 文件名 */
     const val PREFS_NAME = "config"

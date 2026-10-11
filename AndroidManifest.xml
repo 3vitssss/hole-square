@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.threevits.holesquare"
-    android:versionCode="1"
-    android:versionName="1.0.0">
+    package="io.github.threevits.holesquare"
+    android:versionCode="2"
+    android:versionName="1.0.1">
 
     <application
         android:label="挖孔黑方块"
@@ -27,7 +27,7 @@
         -->
         <provider
             android:name=".ConfigProvider"
-            android:authorities="com.threevits.holesquare.config"
+            android:authorities="io.github.threevits.holesquare.config"
             android:exported="true" />
 
         <!-- ── LSPosed 模块的那一面 ── -->
