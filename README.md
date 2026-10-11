@@ -317,11 +317,37 @@ adb shell dumpsys window windows | awk '
 ```bash
 ./build.sh
 adb install -r build/module.apk
+```
+
+手搓构建（kotlinc + d8 + aapt2），不用 Gradle。**只需要自备 Android SDK**，其余全自动：
+
+| 依赖 | 怎么来 |
+|---|---|
+| `build-tools;34.0.0` + `platforms;android-34` | 自备，用 `ANDROID_SDK_ROOT` 指向 SDK（默认 `~/Android/Sdk`） |
+| Kotlin 编译器 2.4.20 | **首次构建自动从 Maven Central 下到 `./tools/`**（约 63 MB，之后走缓存） |
+| Xposed API（`tools/api-82.jar`，25 KB） | 随仓库提交，不用管 |
+| 签名钥匙 | 缺失时自动生成到项目根的 `debug.keystore`（已在 `.gitignore` 里） |
+
+想用自己的钥匙设 `KEYSTORE`，工具链想放别处设 `TOOLS_DIR`。
+
+**干净环境验证过**：把项目拷到空目录、不给任何工具链，直接跑 `./build.sh` 能出 APK。
+
+没有 AndroidX —— 界面全用代码搭，不碰 R 资源（只有图标和 xposedscope 走 res/，
+由 aapt2 在链接期解析）。
+
+装完之后**需要重启一次 SystemUI** 模块才生效：
+
+```bash
 adb shell su -c 'killall com.android.systemui'
 ```
 
-手搓构建（kotlinc + d8 + aapt2），工具链借 `../lsposed-tutorial/tools/`（`TOOLS_DIR` 可覆盖）。
-没有 AndroidX —— 界面全用代码搭，不碰 R 资源（只有图标和 xposedscope 走 res/，由 aapt2 在链接期解析）。
+> ⚠️ 别连着反复执行这条 —— LSPosed 把 SystemUI 反复死亡当成系统不稳定，
+> 累计 4 次会自动进入**安全模式**，届时所有 Xposed 模块全部停用直到重启。
+> 只在装完模块需要生效时来一次。
+
+## 许可证
+
+MIT
 
 ## 验证
 
