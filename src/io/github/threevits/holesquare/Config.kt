@@ -40,11 +40,11 @@ data class CustomShape(
 /**
  * 当前配置。
  *
- * [selection] 是当前选中项的 key：内置形状用 [HoleShape.id]（`square` / `triangle`），
+ * [selection] 是当前选中项的 key：内置形状用 [HoleShape.id]（`square` / `star` …），
  * 自定义项用 [CustomShape.id]。
  *
- * **每个项各带一套 [ShapeParams]** —— 方形要 82px 才刚好盖住，三角形得 164px 才包得住
- * 那个圆，光晕又是另一个值，共用一个尺寸的话每切一次都得重调。
+ * **每个项各带一套 [ShapeParams]** —— 方形要 82px 才刚好盖住那个圆，五角星要 129px、
+ * 圆角矩形又是 116px，共用一个尺寸的话每切一次都得重调。
  */
 data class HoleConfig(
     val selection: String,
@@ -95,13 +95,34 @@ data class HoleConfig(
         const val DEFAULT_SIZE_PX = HoleGeometry.MEASURED_HOLE_DIAMETER_PX
 
         /**
-         * 三角形的默认边长 = 孔径的 2 倍。
+         * 五角星的默认边长 —— **实测调出来的**。
          *
-         * 顶点在上的等腰三角形要包住同样大小的圆，边长得满足 `S/2 ≥ r`，即 `S ≥ 直径`；
-         * 而它自己还得被缩放到窗口里、边长等于 `S`，所以窗口也得是 `S`。
-         * 给 2 倍（=164）才能干净包住，不然圆的左右会从两条斜边鼓出来。
+         * 星星轮廓上离中心**最近**的地方是凹角（不是尖角），圆孔最先从那儿露出来，
+         * 所以它要的尺寸比方形的 82 大一截；但顶上那个尖又伸得远，给太大就顶进
+         * 状态栏的图标区了。129 是两头都合适的值。
          */
-        const val TRIANGLE_DEFAULT_SIZE_PX = DEFAULT_SIZE_PX * 2
+        const val STAR_DEFAULT_SIZE_PX = 129
+
+        /**
+         * 圆角矩形的默认边长 —— **实测调出来的**。
+         *
+         * 视野 200×200 里那个 rect 是 140 宽，缩到 116 时实际画出来
+         * `140 × 116 / 200 = 81.2px`，跟 ⌀82 的孔差 0.8px，肉眼看不出。
+         */
+        const val ROUNDED_DEFAULT_SIZE_PX = 116
+
+        /**
+         * 渐变横条的默认边长。
+         *
+         * 这一项跟别的不一样：**这个数字就是横条的实际宽度**，不是"窗口边长"那种抽象量。
+         * 视野是 260×82（宽高比 3.17），而窗口是正方形、SvgDrawable 又是保持长宽比
+         * 居中缩放的（`scale = min(260/260, 260/82) = 1.0`），所以 260 意味着
+         * **按 1:1 渲染** —— SVG 里写的那些坐标就是设备上的像素。
+         */
+        const val BAR_DEFAULT_SIZE_PX = 260
+
+        /** 五角星的默认纵向偏移比别人多 1px —— 实测调出来的，别顺手改成 2。 */
+        const val STAR_DEFAULT_OFFSET_Y_PX = 3
 
         /**
          * 自定义项的默认边长 = 孔径的 1.7 倍。
@@ -126,9 +147,16 @@ data class HoleConfig(
         fun clampOffset(offset: Int) = offset.coerceIn(-MAX_OFFSET_PX, MAX_OFFSET_PX)
 
         fun defaultParamsFor(shape: HoleShape) = when (shape) {
-            HoleShape.TRIANGLE ->
-                ShapeParams(TRIANGLE_DEFAULT_SIZE_PX, DEFAULT_OFFSET_X_PX, DEFAULT_OFFSET_Y_PX)
+            HoleShape.STAR ->
+                ShapeParams(STAR_DEFAULT_SIZE_PX, DEFAULT_OFFSET_X_PX, STAR_DEFAULT_OFFSET_Y_PX)
 
+            HoleShape.ROUNDED ->
+                ShapeParams(ROUNDED_DEFAULT_SIZE_PX, DEFAULT_OFFSET_X_PX, DEFAULT_OFFSET_Y_PX)
+
+            HoleShape.BAR ->
+                ShapeParams(BAR_DEFAULT_SIZE_PX, DEFAULT_OFFSET_X_PX, DEFAULT_OFFSET_Y_PX)
+
+            // NONE 什么都不画，参数给什么都无所谓 —— 照常给一套，免得界面上空着
             else ->
                 ShapeParams(DEFAULT_SIZE_PX, DEFAULT_OFFSET_X_PX, DEFAULT_OFFSET_Y_PX)
         }
@@ -171,7 +199,7 @@ data class HoleConfig(
  *
  * ── 存法 ──
  *
- * 内置形状各占一套键（`size_px_square`、`offset_x_triangle`…）。
+ * 内置形状各占一套键（`size_px_square`、`offset_x_star`…）。
  * 自定义项是一张**列表**，序列化成 JSON 存在一个键里 —— prefs 只支持标量，
  * 而列表要能任意增删改名，JSON 最省事，`org.json` 又是 framework 自带的。
  *

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.threevits.holesquare"
-    android:versionCode="2"
-    android:versionName="1.0.1">
+    android:versionCode="4"
+    android:versionName="1.0.3">
 
     <application
         android:label="挖孔黑方块"
@@ -10,9 +10,15 @@
         android:theme="@style/AppTheme">
 
         <!-- ── 普通 app 的那一面：有图标、点得开 ── -->
+        <!--
+            锁竖屏不是偷懒：预览和「偏移量」都是按竖屏坐标算的。
+            允许横屏的话，用户横着调出来的偏移值会被当成竖屏向量用，方向直接歪掉。
+            锁死之后，app 里看到的、调的、模块用的，永远是同一套坐标。
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:label="挖孔黑方块">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,7 +43,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="在挖孔位置常驻一块黑形状（方形／三角形），把圆孔视觉上变成所选形状。改完立刻生效，不用重启。" />
+            android:value="在挖孔位置常驻一块黑形状（方形／五角星／圆角矩形／渐变横条，也能粘自己的 SVG），把圆孔视觉上变成所选形状。改完立刻生效，不用重启。" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />

@@ -3,8 +3,10 @@ package io.github.threevits.holesquare
 import android.content.Context
 import android.database.ContentObserver
 import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
+import android.view.Display
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -77,9 +79,15 @@ class HookEntry : IXposedHookLoadPackage {
             val params = layoutParamsFor(holeRect, view.config)
             wm.addView(view, params)
 
+            // 装上的这一刻可能本来就是横屏（SystemUI 在横屏下重启时就会），
+            // 所以初始状态得先问一次，不能默认「竖屏」等着后面被通知。
+            view.showShape = HoleGeometry.isUpright(ctx)
+            watchRotation(ctx, view)
+
             XposedBridge.log(
                 "[$TAG] 窗口已就位 ${params.width}x${params.height} @ (${params.x}, ${params.y})，" +
-                    "属性里的挖孔 ${HoleGeometry.describe(holeRect)}"
+                    "属性里的挖孔 ${HoleGeometry.describe(holeRect)}，" +
+                    "屏幕旋转 ${HoleGeometry.rotationDegrees(ctx)}°（${describeOrientation(view)}）"
             )
 
             // app 改配置后调 notifyChange，这里就会被叫醒。
@@ -105,6 +113,54 @@ class HookEntry : IXposedHookLoadPackage {
             XposedBridge.log("[$TAG] install 失败：$t")
         }
     }
+
+    /**
+     * 盯着屏幕旋转。
+     *
+     * 用 DisplayManager.DisplayListener 而不是等配置变化 —— 它报的就是「显示变了」
+     * 这件事本身，横竖屏切换必然触发。
+     *
+     * 旋转刚发生时读到的 rotation 有可能是旧值（显示服务先广播、窗口系统后跟上），
+     * 所以除了当场处理，还补一次延迟复查。反正 [applyOrientation] 是幂等的，
+     * 重复调用只会早退。
+     */
+    private fun watchRotation(ctx: Context, view: ShapeView) {
+        val dm = ctx.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager ?: run {
+            XposedBridge.log("[$TAG] 拿不到 DisplayManager，横屏不显示这一条不生效")
+            return
+        }
+        val listener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) = Unit
+            override fun onDisplayRemoved(displayId: Int) = Unit
+
+            override fun onDisplayChanged(displayId: Int) {
+                if (displayId != Display.DEFAULT_DISPLAY) return
+                applyOrientation(ctx, view, "旋转变化")
+                Handler(Looper.getMainLooper()).postDelayed(
+                    { applyOrientation(ctx, view, "旋转复查") },
+                    ORIENTATION_RECHECK_DELAY_MS
+                )
+            }
+        }
+        dm.registerDisplayListener(listener, Handler(Looper.getMainLooper()))
+    }
+
+    /** 按当前方向开关形状。幂等 —— 状态没变就直接返回。 */
+    private fun applyOrientation(ctx: Context, view: ShapeView, why: String) {
+        try {
+            val upright = HoleGeometry.isUpright(ctx)
+            if (view.showShape == upright) return
+            view.showShape = upright
+            XposedBridge.log(
+                "[$TAG] $why：旋转 ${HoleGeometry.rotationDegrees(ctx)}° → ${describeOrientation(view)}"
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("[$TAG] 方向处理失败：$t")
+        }
+    }
+
+    private fun describeOrientation(view: ShapeView): String =
+        if (view.showShape) "竖屏，显示" else "非竖屏，不显示"
 
     private fun syncConfig(
         ctx: Context,
@@ -150,7 +206,8 @@ class HookEntry : IXposedHookLoadPackage {
             height = config.sizePx
             type = WINDOW_TYPE
             // 必须是 TRANSLUCENT，不能是 OPAQUE。
-            // 三角形盖不满窗口，没盖到的地方得透过去看见后面的内容；
+            // 五角星、横条这类图案都盖不满窗口（星角之间、横条上下都是空的），
+            // 没盖到的地方得透过去看见后面的内容；
             // 而且 OPAQUE 窗口下渲染器不会每帧清缓冲，换形状时旧图形会赖着不走。
             format = PixelFormat.TRANSLUCENT
             gravity = Gravity.TOP or Gravity.LEFT
@@ -197,6 +254,9 @@ class HookEntry : IXposedHookLoadPackage {
         /** 开机后向 ConfigProvider 同步配置的最大重试次数 */
         const val MAX_SYNC_ATTEMPTS = 12
         const val SYNC_RETRY_DELAY_MS = 1500L
+
+        /** 旋转广播之后多久再确认一次方向（显示服务可能比窗口系统先到） */
+        const val ORIENTATION_RECHECK_DELAY_MS = 400L
 
     }
 }

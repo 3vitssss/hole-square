@@ -403,9 +403,22 @@ class MainActivity : Activity() {
                     // 允许输到一半的 "-" 或空，别在那儿报错
                     if (text.isEmpty() || text == "-") return
                     val value = text.toIntOrNull() ?: return
-                    pick(field, value)
+                    pick(field, value, fromTyping = true)
                 }
             })
+            // 离开输入框时把"夹过之后真正生效的值"显示出来。
+            // 打字过程中故意不回写（见 pick 的注释），所以框里可能显示着 1 而实际是 8 ——
+            // 光标一走就得对齐，不然用户看到的是个假数。
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) return@setOnFocusChangeListener
+                syncing = true
+                try {
+                    val want = valueOf(field).toString()
+                    if ((v as EditText).text?.toString() != want) v.setText(want)
+                } finally {
+                    syncing = false
+                }
+            }
         }
         fields[field] = fieldView
 
@@ -443,10 +456,16 @@ class MainActivity : Activity() {
 
     /**
      * 输入框直接填的值可能超范围，这里只 clamp 到合法区间，**不**把 clamp 后的值写回输入框 ——
-     * 用户正在打字时回写会打断输入（比如输到一半的 "1" 会被改成 "8"）。
-     * 回写只发生在按 +/− 或切换项时。
+     * 用户正在打字时回写会打断输入。
+     *
+     * 这个坑真踩过：`MIN_SIZE_PX` 是 8，用户想打 15，刚敲下 "1" 就被夹成 8，
+     * 框里直接变成 "8"，后面那个 "5" 接上去成了 85 —— 表现是"**打什么数字都变 8，只有 9 幸存**"
+     * （9 刚好 ≥ 8，不被夹）。偏移框同理：打 "300" 打到第三位就跳成 200。
+     *
+     * 规矩是：**正在打字的那个框，谁都不许碰**。回写只发生在按 +/−、切换项、
+     * 以及光标离开输入框的时候（离开时那一下在下面 setOnFocusChangeListener 里）。
      */
-    private fun pick(field: Field, raw: Int) {
+    private fun pick(field: Field, raw: Int, fromTyping: Boolean = false) {
         // 改的是"当前选中项自己那套"参数，别的项不受影响
         val p = config.params
         val next = when (field) {
@@ -454,10 +473,14 @@ class MainActivity : Activity() {
             Field.OFFSET_X -> p.copy(offsetXPx = HoleConfig.clampOffset(raw))
             Field.OFFSET_Y -> p.copy(offsetYPx = HoleConfig.clampOffset(raw))
         }
-        apply(config.withParams(next))
+        apply(config.withParams(next), skipField = if (fromTyping) field else null)
     }
 
-    private fun apply(newConfig: HoleConfig) {
+    /**
+     * @param skipField 这个输入框**不**回写。只有一种情况需要跳过：值是从它自己那儿打进来的，
+     *   回写会把用户正打到一半的内容冲掉。按 +/− 时不要跳过，否则按了没反应。
+     */
+    private fun apply(newConfig: HoleConfig, skipField: Field? = null) {
         config = newConfig
         Config.write(this, newConfig)
         preview.setConfig(newConfig)
@@ -470,6 +493,8 @@ class MainActivity : Activity() {
                 if (shapeGroup.checkedRadioButtonId != it.key) shapeGroup.check(it.key)
             }
             fields.forEach { (field, view) ->
+                // 正在打字的那个框谁都不许碰 —— 碰了就是"打什么数字都变 8"那个 bug
+                if (field == skipField) return@forEach
                 val want = valueOf(field).toString()
                 if (view.text?.toString() != want) {
                     view.setText(want)

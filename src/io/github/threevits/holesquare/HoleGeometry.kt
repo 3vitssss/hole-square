@@ -1,6 +1,9 @@
 package io.github.threevits.holesquare
 
 import android.content.Context
+import android.hardware.display.DisplayManager
+import android.view.Display
+import android.view.Surface
 
 /**
  * 挖孔的几何信息，来源是 OPPO 自己的出厂属性。
@@ -87,6 +90,51 @@ object HoleGeometry {
     /** 给日志用 */
     fun describe(rect: IntArray): String =
         "${rect[2] - rect[0]}x${rect[3] - rect[1]} @ (${rect[0]}, ${rect[1]})"
+
+    // ───────── 屏幕旋转 ─────────
+
+    /**
+     * 当前显示旋转：Surface.ROTATION_0 / 90 / 180 / 270。
+     *
+     * 读不到就返回 ROTATION_0 —— 也就是「竖屏正立」，这正是本模块从头到尾的假设，
+     * 退回到它等于退回改造前的行为，不会更糟。
+     */
+    fun rotation(context: Context): Int = try {
+        val dm = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+        dm?.getDisplay(Display.DEFAULT_DISPLAY)?.rotation ?: Surface.ROTATION_0
+    } catch (_: Throwable) {
+        Surface.ROTATION_0
+    }
+
+    /**
+     * 屏幕是不是竖屏正立 —— **只有这时才画形状**。
+     *
+     * ── 为什么横屏就藏起来，而不是把形状挪到孔那儿 ──
+     *
+     * 挖孔是面板上的物理位置，不跟着内容转。竖屏时它在顶部正中，横屏时它跑到屏幕
+     * 左／右侧的垂直正中 —— 而窗口坐标系是跟着内容转的，所以本模块用的那套
+     * 「竖屏坐标」在横屏下全部失效（窗口会飘到屏幕另一个地方去，
+     * 表现就是一块黑方块出现在不该出现的位置）。
+     *
+     * 挪过去需要把自然坐标按旋转映射一遍（AOSP CoordinateTransforms 那套
+     * ROTATION_90 → (y, W₀ − x) 之类），而用户的选择是横屏干脆不盖 —— 于是这里
+     * 只需要判断方向。**180° 也算不显示**：它是竖屏但是倒的，孔的物理位置同样
+     * 跑到屏幕底部去了，照画一样是块飘着的黑方块。
+     */
+    fun isUpright(context: Context): Boolean = rotation(context) == Surface.ROTATION_0
+
+    /**
+     * 旋转的**角度**（0 / 90 / 180 / 270），给日志和显示用。
+     *
+     * 别把 [rotation] 的返回值直接当角度打 —— `Surface` 那套常量是 0/1/2/3，
+     * 90° 打出来是「1°」，日志会看得人一头雾水。
+     */
+    fun rotationDegrees(context: Context): Int = when (rotation(context)) {
+        Surface.ROTATION_90 -> 90
+        Surface.ROTATION_180 -> 180
+        Surface.ROTATION_270 -> 270
+        else -> 0
+    }
 }
 
 internal object Tag {
