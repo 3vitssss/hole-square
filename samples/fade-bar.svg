@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="82" viewBox="0 0 260 82">
+  <!--
+    中间实心、左右淡出的横条（直角矩形）。坐标系就是实际像素：260 宽 × 82 高。
+
+    实心段 x 97 → 163，宽 66px，居中在 x=130 上。
+    ⚠️ 66px 比 ⌀82 的挖孔窄，圆的左右两端各 8px 会露在淡出区里。
+       实测那块 alpha ≈ 0.94，肉眼基本看不出（要完全盖住得把实心做到 ≥82px：
+       L = (260-82)/2 = 89 → offset 89/260 = 0.3423）。
+
+    两侧各 97px 淡出，用 8 个点逼近 smoothstep 曲线 alpha(s) = 3s² − 2s³
+    （s=0 在外端，s=1 在实心边缘）。两端斜率都是零，是"滑"进全透明的。
+    用线性的话末端斜率不为零，alpha 撞到 0 会留下一条能看出来的终止线。
+
+    注意 offset 永远是渐变向量的比例（0~1），跟 gradientUnits 无关，所以 offset = x / 260。
+  -->
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0.0000" stop-color="#000000" stop-opacity="0.0000"/>
+      <stop offset="0.0560" stop-color="#000000" stop-opacity="0.0607"/>
+      <stop offset="0.1119" stop-color="#000000" stop-opacity="0.2160"/>
+      <stop offset="0.1679" stop-color="#000000" stop-opacity="0.4253"/>
+      <stop offset="0.2238" stop-color="#000000" stop-opacity="0.6480"/>
+      <stop offset="0.2798" stop-color="#000000" stop-opacity="0.8438"/>
+      <stop offset="0.3358" stop-color="#000000" stop-opacity="0.9720"/>
+      <stop offset="0.3731" stop-color="#000000" stop-opacity="1.0000"/>
+      <stop offset="0.6269" stop-color="#000000" stop-opacity="1.0000"/>
+      <stop offset="0.6642" stop-color="#000000" stop-opacity="0.9720"/>
+      <stop offset="0.7202" stop-color="#000000" stop-opacity="0.8438"/>
+      <stop offset="0.7762" stop-color="#000000" stop-opacity="0.6480"/>
+      <stop offset="0.8321" stop-color="#000000" stop-opacity="0.4253"/>
+      <stop offset="0.8881" stop-color="#000000" stop-opacity="0.2160"/>
+      <stop offset="0.9440" stop-color="#000000" stop-opacity="0.0607"/>
+      <stop offset="1.0000" stop-color="#000000" stop-opacity="0.0000"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="260" height="82" fill="url(#bar)"/>
+</svg>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    自适应图标前景：108×108 画布，内容放在中间 72×72 安全区（18..90）里。
+    图形就是一个白色方块，中间抠一个黑圆代表挖孔 —— 正是这个模块在做的事。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30 H78 V78 H30 Z" />
+
+    <path
+        android:fillColor="#000000"
+        android:pathData="M44,54 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+</vector>

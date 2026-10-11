@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.threevits.holesquare">
+
+    <application
+        android:label="挖孔黑方块"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/AppTheme">
+
+        <!-- ── 普通 app 的那一面：有图标、点得开 ── -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="挖孔黑方块">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            把配置暴露给 SystemUI 里的 hook。必须 exported ——
+            查询方是 SystemUI，跟本 app 不同 uid、不同签名，拿不到自定义权限。
+            里面只有一个形状名字符串。
+        -->
+        <provider
+            android:name=".ConfigProvider"
+            android:authorities="com.threevits.holesquare.config"
+            android:exported="true" />
+
+        <!-- ── LSPosed 模块的那一面 ── -->
+
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="在挖孔位置常驻一块黑形状（方形／三角形），把圆孔视觉上变成所选形状。改完立刻生效，不用重启。" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82" />
+
+        <!-- 声明作用域，LSPosed 装上就自动勾上"系统界面" -->
+        <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposedscope" />
+    </application>
+</manifest>

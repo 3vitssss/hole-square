@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        刻意**不**跟随系统深色模式。
+
+        这个 app 的主要用途是让人盯着屏幕顶上那块黑形状调大小，
+        黑形状压在白底上边界才看得清；跟着系统变深色的话，
+        黑方块压在深色界面上根本分不出边界，测量就无从谈起。
+
+        状态栏也设成白的 + 深色图标（windowLightStatusBar）——
+        挖孔就在状态栏那一行，那块要是深的，正好把要看的区域糊掉。
+    -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <!-- 去掉标题栏：省 56dp，界面能一屏放下，调的时候不用滚 -->
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
